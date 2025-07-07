@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📦 แจ้งของหาย</title>
+    <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📦 แจ้งของหาย</h1>
+            <p>กรุณากรอกข้อมูลให้ครบถ้วน เพื่อให้เราช่วยคุณหาของได้</p>
+        </div>
+
+        <form id="lostItemForm">
+            <div class="form-group">
+                <label for="name">ชื่อ-สกุล *</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="department">แผนกวิชา *</label>
+                <input type="text" id="department" name="department" placeholder="เช่น ช่างไฟฟ้า" required>
+            </div>
+
+            <div class="form-group">
+                <label for="room">ห้อง *</label>
+                <input type="text" id="room" name="room" placeholder="เช่น ปวช.2/1" required>
+            </div>
+
+            <div class="form-group">
+                <label for="detail">รายละเอียดของหาย *</label>
+                <textarea id="detail" name="detail" placeholder="อธิบายลักษณะของที่หาย สี ขนาด ยี่ห้อ ฯลฯ" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="date">วันที่ทำของหาย *</label>
+                <input type="date" id="date" name="date" required>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">เบอร์โทร *</label>
+                <input type="tel" id="phone" name="phone" placeholder="08X-XXX-XXXX" required>
+            </div>
+
+            <button type="submit" class="submit-btn">ส่งข้อมูล</button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <p>กำลังส่งข้อมูล...</p>
+        </div>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const LIFF_ID = "2007673805-m6zbjre2"; // ใส่ LIFF ID ของคุณ
+        const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwkjw4xHDQBuBzH_GIPi9-iSxf44-9EO4Fit5N9H2Q7hxSzKmUJ5p0C2ycnSYTtMIRy/exec"; // ใส่ URL ของ Apps Script
+
+        let userId = "";
+
+        // เริ่มต้น LIFF
+        async function initializeLiff() {
+            try {
+                await liff.init({ liffId: LIFF_ID });
+                
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                } else {
+                    const profile = await liff.getProfile();
+                    userId = profile.userId;
+                    console.log("User ID:", userId);
+                }
+            } catch (error) {
+                console.error("LIFF initialization failed:", error);
+                showResult("เกิดข้อผิดพลาดในการเชื่อมต่อ LINE", "error");
+            }
+        }
+
+        // ฟังก์ชันส่งข้อมูล
+        async function submitForm(formData) {
+            try {
+                const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.text();
+                
+                if (result === "SUCCESS") {
+                    return true;
+                } else {
+                    throw new Error("Server returned: " + result);
+                }
+            } catch (error) {
+                console.error("Submit error:", error);
+                return false;
+            }
+        }
+
+        // แสดงผลลัพธ์
+        function showResult(message, type) {
+            const resultDiv = document.getElementById("result");
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = "block";
+        }
+
+        // ฟังก์ชันโหลด
+        function showLoading(show) {
+            document.getElementById("loading").style.display = show ? "block" : "none";
+            document.querySelector(".submit-btn").disabled = show;
+        }
+
+        // Event listener สำหรับฟอร์ม
+        document.getElementById("lostItemForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            
+            if (!userId) {
+                showResult("กรุณาเข้าสู่ระบบ LINE ก่อน", "error");
+                return;
+            }
+
+            showLoading(true);
+            
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            // เพิ่มข้อมูลเสริม
+            data.userId = userId;
+            data.timestamp = new Date().toLocaleString("th-TH");
+
+            const success = await submitForm(data);
+            
+            showLoading(false);
+            
+            if (success) {
+                showResult("✅ ส่งข้อมูลเรียบร้อยแล้ว! เราจะแจ้งให้ทราบเมื่อพบของ", "success");
+                e.target.reset();
+                
+                // ปิด LIFF หลังจากส่งสำเร็จ
+                setTimeout(() => {
+                    liff.closeWindow();
+                }, 2000);
+            } else {
+                showResult("❌ เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง", "error");
+            }
+        });
+
+        // เริ่มต้นระบบ
+        initializeLiff();
+    </script>
+</body>
+</html>
